@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>반응 속도 테스트</title>
+<style>
+  :root {
+    --bg: #111827;
+    --panel: #1f2937;
+    --text: #f9fafb;
+    --muted: #9ca3af;
+    --idle: #3b82f6;
+    --wait: #dc2626;
+    --go: #16a34a;
+    --fail: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    gap: 16px;
+  }
+  h1 { margin: 8px 0 0; font-size: 1.6rem; }
+  .help {
+    max-width: 640px;
+    width: 100%;
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .help ol { margin: 4px 0 0; padding-left: 20px; }
+  .help b { color: #fde68a; }
+  #stage {
+    width: 100%;
+    max-width: 640px;
+    height: 320px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    background: var(--idle);
+    transition: background 0.05s;
+    padding: 16px;
+  }
+  #stage.waiting { background: var(--wait); }
+  #stage.go { background: var(--go); }
+  #stage.early { background: var(--fail); color: #111827; }
+  #big { font-size: 2.2rem; font-weight: 700; }
+  #small { font-size: 1.05rem; margin-top: 8px; opacity: 0.9; }
+  .dots { display: flex; gap: 8px; }
+  .dot {
+    width: 64px;
+    padding: 6px 0;
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--muted);
+    text-align: center;
+    font-size: 0.85rem;
+  }
+  .dot.done { background: #374151; color: var(--text); }
+  .records {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    max-width: 640px;
+  }
+  .card {
+    flex: 1;
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+  .card .label { color: var(--muted); font-size: 0.85rem; }
+  .card .value { font-size: 1.5rem; font-weight: 700; margin-top: 4px; }
+  button {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid #4b5563;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.85rem;
+  }
+  button:hover { color: var(--text); }
+</style>
+</head>
+<body>
+  <h1>⚡ 반응 속도 테스트</h1>
+
+  <div class="help">
+    <b>사용법</b>
+    <ol>
+      <li>아래 파란 칸을 클릭하면 시작 (스페이스바도 돼요)</li>
+      <li>칸이 <b>빨간색</b>이 되면 기다리세요</li>
+      <li><b>초록색</b>으로 바뀌는 순간 최대한 빨리 클릭!</li>
+      <li>초록색 전에 누르면 <b>실패</b> — 그 판은 다시 해요</li>
+      <li>5번 재서 평균을 내고, 최고 기록은 자동 저장돼요</li>
+    </ol>
+  </div>
+
+  <div id="stage">
+    <div id="big">클릭해서 시작</div>
+    <div id="small">5번 재서 평균을 계산해요</div>
+  </div>
+
+  <div class="dots" id="dots"></div>
+
+  <div class="records">
+    <div class="card">
+      <div class="label">최고 평균 (5번)</div>
+      <div class="value" id="bestAvg">-</div>
+    </div>
+    <div class="card">
+      <div class="label">최고 한 번 기록</div>
+      <div class="value" id="bestOne">-</div>
+    </div>
+  </div>
+
+  <button id="reset">최고 기록 지우기</button>
+
+<script>
+  const ROUNDS = 5;
+  const stage = document.getElementById('stage');
+  const big = document.getElementById('big');
+  const small = document.getElementById('small');
+  const dotsEl = document.getElementById('dots');
+
+  // 상태: idle(시작 전) / waiting(빨강) / go(초록) / early(너무 빨리) / between(판 사이) / finished(5판 끝)
+  let state = 'idle';
+  let times = [];
+  let timer = null;
+  let goAt = 0;
+
+  // 최고 기록 저장 (브라우저에 저장, 막혀 있으면 그냥 넘어감)
+  function load(key) {
+    try { const v = localStorage.getItem(key); return v ? Number(v) : null; } catch (e) { return null; }
+  }
+  function save(key, value) {
+    try { localStorage.setItem(key, String(value)); } catch (e) {}
+  }
+  let bestAvg = load('reaction-best-avg');
+  let bestOne = load('reaction-best-one');
+
+  function showRecords() {
+    document.getElementById('bestAvg').textContent = bestAvg ? bestAvg + 'ms' : '-';
+    document.getElementById('bestOne').textContent = bestOne ? bestOne + 'ms' : '-';
+  }
+
+  function drawDots() {
+    dotsEl.innerHTML = '';
+    for (let i = 0; i < ROUNDS; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot' + (times[i] ? ' done' : '');
+      d.textContent = times[i] ? times[i] + 'ms' : (i + 1) + '판';
+      dotsEl.appendChild(d);
+    }
+  }
+
+  function setScreen(cls, bigText, smallText) {
+    stage.className = cls;
+    big.textContent = bigText;
+    small.textContent = smallText;
+  }
+
+  function startWaiting() {
+    state = 'waiting';
+    setScreen('waiting', '기다리세요...', '초록색이 되면 클릭!');
+    const delay = 1500 + Math.random() * 3000; // 1.5초 ~ 4.5초 사이 랜덤
+    timer = setTimeout(() => {
+      state = 'go';
+      goAt = performance.now();
+      setScreen('go', '지금 클릭!', '');
+    }, delay);
+  }
+
+  function handlePress() {
+    if (state === 'idle' || state === 'finished') {
+      times = [];
+      drawDots();
+      startWaiting();
+    } else if (state === 'waiting') {
+      clearTimeout(timer);
+      state = 'early';
+      setScreen('early', '너무 빨라요! 실패 ❌', '초록색이 된 다음에 눌러야 해요. 클릭해서 이 판 다시 하기');
+    } else if (state === 'go') {
+      const ms = Math.round(performance.now() - goAt);
+      times.push(ms);
+      drawDots();
+      if (bestOne === null || ms < bestOne) { bestOne = ms; save('reaction-best-one', ms); }
+      showRecords();
+
+      if (times.length < ROUNDS) {
+        state = 'between';
+        setScreen('', ms + 'ms', (times.length + 1) + '번째 판: 클릭해서 계속');
+      } else {
+        finish();
+      }
+    } else if (state === 'early' || state === 'between') {
+      startWaiting();
+    }
+  }
+
+  function finish() {
+    state = 'finished';
+    const avg = Math.round(times.reduce((a, b) => a + b, 0) / ROUNDS);
+    let msg = '클릭해서 다시 도전';
+    if (bestAvg === null || avg < bestAvg) {
+      bestAvg = avg;
+      save('reaction-best-avg', avg);
+      msg = '🏆 새 최고 기록! ' + msg;
+    }
+    showRecords();
+    setScreen('', '평균 ' + avg + 'ms', msg);
+  }
+
+  // pointerdown 은 click 보다 빨리 반응해서 기록이 더 정확해요
+  stage.addEventListener('pointerdown', handlePress);
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (!e.repeat) handlePress();
+    }
+  });
+
+  document.getElementById('reset').addEventListener('click', () => {
+    bestAvg = null;
+    bestOne = null;
+    try {
+      localStorage.removeItem('reaction-best-avg');
+      localStorage.removeItem('reaction-best-one');
+    } catch (e) {}
+    showRecords();
+  });
+
+  drawDots();
+  showRecords();
+</script>
+</body>
+</html>
