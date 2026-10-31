@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>지옥 탈출 · 용어 러너</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0405;
+    --panel: #1c0a0b;
+    --line: #4a1712;
+    --fire: #ff5a1f;
+    --ember: #ffb347;
+    --blood: #c4122f;
+    --text: #f3e6d8;
+    --muted: #a8877a;
+    --ok: #59d98e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 50% 120%, #5a1408 0%, #1a0505 45%, var(--bg) 80%);
+    color: var(--text);
+    font-family: "Noto Sans KR", sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 860px; padding: 18px 14px 40px; }
+  h1, .big { font-family: "Black Han Sans", "Noto Sans KR", sans-serif; font-weight: 400; }
+  h1 {
+    margin: 0;
+    font-size: 44px;
+    letter-spacing: 2px;
+    color: var(--ember);
+    text-shadow: 0 0 12px var(--fire), 0 0 30px var(--blood);
+    text-align: center;
+  }
+  .sub { text-align: center; color: var(--muted); margin: 6px 0 22px; }
+  .screen { display: none; }
+  .screen.on { display: block; }
+
+  /* 시작 화면 */
+  .parts { display: grid; gap: 12px; }
+  .part-btn {
+    text-align: left;
+    padding: 16px 18px;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    background: linear-gradient(90deg, #2a0d0c, #170708);
+    color: var(--text);
+    cursor: pointer;
+    font: inherit;
+    transition: border-color .15s, transform .15s;
+  }
+  .part-btn:hover { border-color: var(--fire); transform: translateX(4px); }
+  .part-btn .big { font-size: 22px; color: var(--ember); display: block; }
+  .part-btn small { color: var(--muted); }
+  .rules {
+    margin-top: 18px; padding: 12px 16px;
+    border-left: 3px solid var(--blood);
+    background: rgba(0,0,0,.35); color: var(--muted); font-size: 14px; line-height: 1.7;
+  }
+
+  /* 게임 화면 */
+  .hud {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 10px; flex-wrap: wrap;
+    padding: 10px 16px; border: 2px solid var(--line); border-radius: 12px;
+    background: linear-gradient(90deg, #2a0d0c, #160607);
+  }
+  .hud-left { display: flex; flex-direction: column; gap: 2px; }
+  .hud .big { font-size: 18px; color: var(--ember); }
+  #hudCount { font-size: 13px; color: var(--muted); }
+  .hearts { font-size: 24px; letter-spacing: 3px; }
+  .hearts span { display: inline-block; transition: transform .2s; }
+  .hearts .lost { filter: grayscale(1) brightness(.35); transform: scale(.8); }
+  .dots { display: flex; gap: 5px; flex-wrap: wrap; margin: 8px 0; }
+  .dot {
+    width: 26px; height: 22px; border-radius: 6px; font-size: 10px;
+    display: grid; place-items: center;
+    background: #1c0a0b; border: 1px solid var(--line); color: var(--muted);
+  }
+  .dot.ok { background: #1d5a37; border-color: var(--ok); color: #fff; }
+  .dot.bad { background: #6a1020; border-color: var(--blood); color: #fff; }
+  .dot.now { border-color: var(--ember); color: var(--ember); box-shadow: 0 0 8px var(--fire); }
+  canvas {
+    width: 100%; display: block;
+    border: 2px solid var(--line); border-radius: 12px;
+    background: #000;
+    box-shadow: 0 0 30px rgba(196,18,47,.25);
+  }
+  .touch { display: flex; gap: 10px; margin-top: 10px; }
+  .pad {
+    flex: 1; font: inherit; font-size: 22px; padding: 14px;
+    border: 2px solid var(--line); border-radius: 12px;
+    background: #1c0a0b; color: var(--text);
+    touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  .pad.jump { flex: 2; color: var(--ember); font-family: "Black Han Sans", sans-serif; background: linear-gradient(180deg, #5a1a10, #2a0a08); }
+  .pad:active { border-color: var(--fire); }
+  @media (hover: hover) and (pointer: fine) { .touch { display: none; } }
+  .keys { text-align: center; color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  kbd {
+    display: inline-block; padding: 1px 7px; margin: 0 1px;
+    border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 5px;
+    background: #1c0a0b; color: var(--ember); font-family: inherit; font-size: 12px;
+  }
+
+  /* 문제 창 */
+  .modal {
+    position: fixed; inset: 0; z-index: 10; padding: 16px;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(10,0,0,.75); backdrop-filter: blur(3px);
+  }
+  .modal.on { display: flex; }
+  .modal .card {
+    width: 100%; max-width: 680px; max-height: 92vh; overflow: auto; margin: 0;
+    box-shadow: 0 0 40px rgba(255,90,31,.35);
+    animation: pop .25s ease-out;
+  }
+  @keyframes pop { from { transform: scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
+  .modal-title { font-family: "Black Han Sans", sans-serif; font-size: 22px; color: var(--ember); margin-bottom: 8px; }
+  .card {
+    margin-top: 12px; padding: 18px;
+    border: 2px solid var(--line); border-radius: 12px;
+    background: var(--panel);
+  }
+  .meta { display: flex; gap: 8px; margin-bottom: 10px; font-size: 13px; }
+  .tag { padding: 2px 10px; border-radius: 20px; background: #3a1210; color: var(--ember); }
+  .tag.lv { color: #ffd166; background: #2b1a08; }
+  .q { font-size: 19px; font-weight: 700; line-height: 1.55; margin: 0 0 14px; white-space: pre-line; }
+
+  .choices { display: grid; gap: 8px; }
+  .choice, .ox, .chip, .tool {
+    font: inherit; color: var(--text); cursor: pointer;
+    border: 2px solid var(--line); border-radius: 10px;
+    background: #12060a; padding: 11px 14px; text-align: left;
+    transition: border-color .12s, background .12s;
+  }
+  .choice:hover:not(:disabled), .ox:hover:not(:disabled), .chip:hover:not(:disabled), .tool:hover:not(:disabled) { border-color: var(--fire); background: #241010; }
+  button:disabled { cursor: default; }
+  .choice.right, .ox.right { border-color: var(--ok); background: #0f2a1a; }
+  .choice.wrong, .ox.wrong { border-color: var(--blood); background: #3a0c12; }
+  .oxrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ox { text-align: center; font-family: "Black Han Sans", sans-serif; font-size: 46px; padding: 14px; }
+
+  .slots { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .slot {
+    min-width: 54px; height: 44px; border: 2px dashed var(--line); border-radius: 8px;
+    display: grid; place-items: center; font-family: "Black Han Sans", sans-serif; font-size: 22px; color: var(--ember);
+  }
+  .slot.filled { border-style: solid; border-color: var(--fire); }
+  .arrow { color: var(--muted); }
+  .chips { display: grid; gap: 8px; }
+  .chip b { color: var(--ember); margin-right: 6px; }
+  .chip.used { opacity: .35; }
+
+  .desc { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 4px; font-size: 15px; }
+  .desc b { color: var(--ember); margin-right: 6px; }
+  .match-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .match-row .term { min-width: 150px; font-weight: 700; }
+  .match-row .opts { display: flex; gap: 6px; }
+  .pick {
+    font: inherit; width: 44px; height: 40px; cursor: pointer;
+    border: 2px solid var(--line); border-radius: 8px; background: #12060a; color: var(--text);
+  }
+  .pick.sel { border-color: var(--fire); background: #4a1712; color: #fff; }
+
+  .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .go {
+    font: inherit; font-weight: 700; cursor: pointer;
+    padding: 11px 22px; border: none; border-radius: 10px;
+    background: linear-gradient(180deg, var(--fire), var(--blood)); color: #fff;
+    box-shadow: 0 0 14px rgba(255,90,31,.45);
+  }
+  .go:disabled { opacity: .35; box-shadow: none; }
+  .tool { padding: 9px 14px; }
+  .warn { color: var(--ember); font-size: 14px; margin-top: 8px; min-height: 1em; }
+
+  .feedback {
+    display: none; margin-top: 14px; padding: 14px 16px; border-radius: 10px;
+    line-height: 1.6;
+  }
+  .feedback.on { display: block; }
+  .feedback.ok { background: #0f2a1a; border: 2px solid var(--ok); }
+  .feedback.no { background: #33090f; border: 2px solid var(--blood); }
+  .feedback .big { font-size: 22px; }
+  .feedback.ok .big { color: var(--ok); }
+  .feedback.no .big { color: #ff6b7d; }
+
+  /* 결과 화면 */
+  .result { text-align: center; padding: 26px 18px; }
+  .result .big.title { font-size: 40px; margin-bottom: 6px; }
+  .result .score { font-family: "Black Han Sans", sans-serif; font-size: 64px; color: var(--ember); text-shadow: 0 0 18px var(--fire); }
+  .result p { color: var(--muted); }
+  .result .actions { justify-content: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>지옥 탈출 · 용어 러너</h1>
+  <p class="sub">문제를 맞혀야 불구덩이를 빠져나갈 수 있다</p>
+
+  <!-- 시작 화면 -->
+  <section id="start" class="screen on">
+    <div class="parts" id="partList"></div>
+    <div class="rules">
+      🏃 <kbd>←</kbd> <kbd>→</kbd> 로 달리고 <kbd>Space</kbd> 로 뛰어 가시와 용암 구덩이를 넘으세요.<br>
+      🔥 길 중간의 <b>제단</b>에 닿으면 문제가 열립니다. 맞히면 그 제단이 <b>체크포인트</b>가 됩니다.<br>
+      👹 틀리면 악마가 분노해 바짝 다가옵니다. 악마에게 잡히거나 용암·가시에 닿으면 하트가 하나 줄고 마지막 체크포인트에서 다시 시작합니다.<br>
+      ❤️ 하트 5개가 모두 사라지면 지옥에 붙잡힙니다. 모든 제단을 지나 EXIT 에 닿으면 탈출!
+    </div>
+  </section>
+
+  <!-- 게임 화면 -->
+  <section id="game" class="screen">
+    <div class="hud">
+      <div class="hud-left">
+        <span class="big" id="hudPart"></span>
+        <span id="hudCount"></span>
+      </div>
+      <span class="hearts" id="hearts"></span>
+    </div>
+    <div class="dots" id="dots"></div>
+    <canvas id="cv" width="900" height="380"></canvas>
+    <div class="touch">
+      <button class="pad" data-k="left">◀</button>
+      <button class="pad" data-k="right">▶</button>
+      <button class="pad jump" data-k="jump">점프</button>
+    </div>
+    <p class="keys"><kbd>←</kbd><kbd>→</kbd> 또는 <kbd>A</kbd><kbd>D</kbd> 이동 · <kbd>Space</kbd> 또는 <kbd>↑</kbd> 점프 (길게 누르면 더 높이)</p>
+
+    <div class="modal" id="modal">
+      <div class="card">
+        <div class="modal-title">🔥 제단의 시험</div>
+        <div class="meta"><span class="tag" id="qType"></span><span class="tag lv" id="qLv"></span></div>
+        <p class="q" id="qText"></p>
+        <div id="answerArea"></div>
+        <div class="feedback" id="feedback"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 결과 화면 -->
+  <section id="end" class="screen">
+    <div class="card result">
+      <div class="big title" id="endTitle"></div>
+      <div class="score" id="endScore"></div>
+      <p id="endMsg"></p>
+      <div class="actions">
+        <button class="go" id="retryBtn">다시 풀기</button>
+        <button class="tool" id="homeBtn">Part 다시 고르기</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ===== 문제 목록 =====
+// 보기 4개 유형: c = 보기, a = 정답 번호(0부터)
+// OX: a = "O" 또는 "X"
+// 순서: items = A~D, a = 정답 순서 문자열
+// 짝 맞히기: terms = 1~4, descs = 가~라, a = 1~4 각각의 짝
+const PARTS = [
+  {
+    name: "Part 1 · Git · GitHub · Pages",
+    qs: [
+      { n: 1, t: "4지선다", lv: 1, q: "고칠 때마다 저장 지점을 찍어 두는, 파일의 세이브 포인트 같은 프로그램은?", c: ["Python", "Orca", "Git", "Node.js"], a: 2, e: "Git 은 저장 지점을 찍어 두고, 망가지면 잘 되던 지점으로 돌아가게 해 줍니다." },
+      { n: 2, t: "빈칸", lv: 1, q: "Git 이 지켜보는 폴더를 (    )(이)라고 합니다.", c: ["저장소", "휴지통", "바탕화면", "토큰"], a: 0, e: "저장소는 영어로 repository, 줄여서 repo 라고 합니다." },
+      { n: 3, t: "OX", lv: 2, q: "저장소 안에 숨어 있는 .git 폴더가 Git 의 기록장이다.", a: "O", e: "저장 지점(커밋)이 모두 .git 폴더 안에 기록됩니다." },
+      { n: 4, t: "4지선다", lv: 1, q: "바뀐 것을 묶어 저장 지점 하나로 남기는 일은?", c: ["클론", "풀", "푸시", "커밋"], a: 3, e: "\"커밋해 줘\" 하면 쌓인 변경을 묶어 기록장에 점 하나로 남깁니다." },
+      { n: 5, t: "4지선다", lv: 2, q: "커밋 메시지(이름표)로 가장 좋은 것은?", c: ["ㅇㅇ", "점수 표시 추가", "1", "수정"], a: 1, e: "무엇을 바꿨는지 한 줄로 적어야 나중에 이름표만 보고 그때를 찾습니다." },
+      { n: 6, t: "OX", lv: 2, q: "Ctrl+S 로 저장만 해 두어도 예전 모습으로 돌아갈 수 있는 점이 생긴다.", a: "X", e: "저장은 지금 모습으로 덮어쓰기, 돌아갈 점은 커밋해야 남습니다." },
+      { n: 7, t: "4지선다", lv: 2, q: "두 커밋을 비교했을 때 빨간색 − 줄은 무엇일까?", c: ["들어온 줄", "빠진 줄", "그대로인 줄", "오류가 난 줄"], a: 1, e: "빨강 − 는 빠진 줄, 초록 + 는 들어온 줄입니다." },
+      { n: 8, t: "빈칸", lv: 2, q: "두 커밋의 차이, 즉 바뀐 줄을 영어로 (    )(이)라고 합니다.", c: ["push", "token", "repo", "diff"], a: 3, e: "diff 는 차이(difference)를 줄인 말입니다." },
+      { n: 9, t: "짝 맞히기", lv: 2, q: "용어와 설명을 짝 지어 봅니다.", terms: ["로컬", "원격", "Git", "GitHub"], descs: ["인터넷에 있는 저장소", "내 컴퓨터에 있는 저장소", "저장소를 인터넷에 보관해 주는 사이트", "내 컴퓨터에서 바뀐 것을 커밋으로 기록하는 프로그램"], a: ["나", "가", "라", "다"], e: "Git 은 프로그램, GitHub 는 보관소입니다. 같은 저장소가 로컬과 원격 두 곳에 있습니다." },
+      { n: 10, t: "4지선다", lv: 1, q: "내 컴퓨터의 커밋을 GitHub 로 올려 보내는 일은?", c: ["푸시", "새로 고침", "풀", "커밋"], a: 0, e: "푸시는 파일 하나가 아니라 저장 지점 묶음을 올립니다." },
+      { n: 11, t: "OX", lv: 2, q: "커밋을 하나도 하지 않았어도 푸시하면 바뀐 파일이 GitHub 로 올라간다.", a: "X", e: "푸시는 커밋을 올리는 일이라, 커밋이 없으면 올릴 것도 없습니다." },
+      { n: 12, t: "4지선다", lv: 2, q: "GitHub 에 있는 저장소를 내 컴퓨터로 처음 통째로 받아 오는 일은?", c: ["풀", "푸시", "클론", "커밋"], a: 2, e: "처음 한 번은 클론, 이미 있으면 풀로 새 커밋만 받습니다." },
+      { n: 13, t: "상황", lv: 3, q: "집 컴퓨터에 이미 저장소가 있다. 학원에서 올린 새 커밋만 받아 오고 싶을 때 하는 부탁은?", c: ["\"다시 푸시해 줘\"", "\"저장소를 클론해 줘\"", "\"GitHub 의 새 커밋을 풀 해 줘\"", "\"지금 상태를 커밋해 줘\""], a: 2, e: "이미 저장소가 있으면 통째로 받지 않고 풀로 새 커밋만 받습니다." },
+      { n: 14, t: "4지선다", lv: 1, q: "저장소의 HTML 을 인터넷 주소로 누구나 볼 수 있게 해 주는 무료 전시장은?", c: ["GitHub Pages", "커밋", "컨텍스트", "토큰"], a: 0, e: "GitHub Pages 는 저장소의 HTML 을 인터넷 주소로 보여 줍니다." },
+      { n: 15, t: "빈칸", lv: 3, q: "주소 my-id.github.io/QUEST-TRACK-2/week-02/ 에서 QUEST-TRACK-2 는 (    ) 이름입니다.", c: ["GitHub 아이디", "폴더", "모델", "저장소"], a: 3, e: "my-id 는 GitHub 아이디, QUEST-TRACK-2 는 저장소, week-02 는 폴더입니다." },
+      { n: 16, t: "순서", lv: 3, q: "고친 게임을 친구가 주소로 보기까지, 일어나는 순서대로 놓아 봅니다.", items: { A: "파일 고치기", B: "푸시", C: "커밋", D: "1~2분 뒤 Pages 반영" }, a: "ACBD", e: "고치고, 커밋해서 남기고, 푸시로 올리면 Pages 가 1~2분 뒤 새 모습을 보여 줍니다." },
+      { n: 17, t: "OX", lv: 2, q: "푸시하자마자 새로 고침했는데 옛 모습이 보이면 페이지가 망가진 것이다.", a: "X", e: "Pages 가 페이지를 다시 만드는 1~2분 동안은 옛 모습이 보입니다. 기다렸다가 F5 를 누릅니다." },
+      { n: 18, t: "4지선다", lv: 3, q: "친구가 내 컴퓨터 안 파일 주소(file:///C:/...)를 입력해도 게임이 열리지 않는 까닭은?", c: ["커밋 메시지가 짧아서", "친구 컴퓨터에는 그 파일이 없어서", "인터넷이 느려서", "파일 이름이 영어라서"], a: 1, e: "그래서 늘 켜져 있는 서버에 두고, 누구나 인터넷 주소로 찾아오게 합니다." },
+    ]
+  },
+  {
+    name: "Part 2 · AI 를 이해하는 말",
+    qs: [
+      { n: 19, t: "4지선다", lv: 1, q: "LLM 은 무엇의 줄임말일까?", c: ["Large Language Model", "Long Line Maker", "Local Link Manager", "Light Learning Machine"], a: 0, e: "엄청 많은 글을 읽고(Large) 사람의 말을 다루는(Language) 프로그램(Model)입니다." },
+      { n: 20, t: "OX", lv: 2, q: "AI 는 검색처럼 이미 있는 글을 찾아 그대로 보여 준다.", a: "X", e: "AI 는 새 문장을 한 조각씩 이어 씁니다. 그래서 답이 매번 조금씩 다릅니다." },
+      { n: 21, t: "빈칸", lv: 2, q: "LLM 은 수많은 글에서 (    ) 말을 가리고 맞혀 보는 연습으로 배웁니다.", c: ["영어", "다음", "맨 처음", "가장 긴"], a: 1, e: "가린 다음 말을 맞혀 보고 정답과 비교하는 연습을 셀 수 없이 반복합니다." },
+      { n: 22, t: "순서", lv: 2, q: "AI 가 답을 만드는 순서대로 놓아 봅니다.", items: { A: "그중 그럴듯한 말을 골라 붙인다", B: "지금까지의 글을 본다", C: "다음 말 후보를 떠올린다", D: "답이 끝날 때까지 반복한다" }, a: "BCAD", e: "지금까지 글을 보고 후보를 떠올린 뒤, 그럴듯한 말을 골라 붙이기를 반복합니다." },
+      { n: 23, t: "4지선다", lv: 1, q: "모르는 것도 그럴듯하게 지어낸 틀린 말을 무엇이라고 할까?", c: ["컨텍스트", "커밋", "클론", "할루시네이션"], a: 3, e: "LLM 은 모르는 것도 그럴듯하게 이어 쓸 때가 있습니다." },
+      { n: 24, t: "상황", lv: 3, q: "AI 가 \"퀴즈를 다 만들었습니다\" 라고 했다. 할루시네이션을 막으려면?", c: ["결과를 직접 열어 정답을 확인한다", "같은 부탁을 열 번 보낸다", "바로 /clear 한다", "그냥 믿고 친구에게 보낸다"], a: 0, e: "다 됐다는 말만 믿지 않고, 결과를 직접 열어 내 눈으로 확인합니다." },
+      { n: 25, t: "4지선다", lv: 1, q: "AI 가 글을 읽을 때 잘게 나누는 조각의 이름은?", c: ["폴더", "픽셀", "토큰", "커밋"], a: 2, e: "AI 는 글을 토큰이라는 조각으로 나누고, 다음 말 맞히기도 한 토큰씩 합니다." },
+      { n: 26, t: "OX", lv: 2, q: "글자 수와 토큰(조각) 수는 언제나 똑같다.", a: "X", e: "한글은 1~2글자, 영어는 단어나 단어 조각이 한 토큰이라 글자 수와 다릅니다." },
+      { n: 27, t: "4지선다", lv: 3, q: "토큰 수와 관계가 없는 것은?", c: ["AI 를 쓰는 비용", "답하는 데 걸리는 시간", "내 GitHub 아이디", "AI 가 한 번에 볼 수 있는 양"], a: 2, e: "볼 수 있는 양, 비용, 시간은 모두 토큰으로 셉니다." },
+      { n: 28, t: "빈칸", lv: 1, q: "AI 가 지금 펼쳐 놓고 보고 있는 책상 전부를 (    )(이)라고 합니다.", c: ["컨텍스트", "저장소", "모델", "diff"], a: 0, e: "대화, 읽은 파일, CLAUDE.md 가 책상(컨텍스트)에 올라갑니다." },
+      { n: 29, t: "4지선다", lv: 2, q: "Claude Code 하단 정보줄의 ① 막대가 보여 주는 것은?", c: ["커밋 개수", "인터넷 속도", "지금 쓰는 모델", "책상(컨텍스트)이 찬 정도"], a: 3, e: "① 막대는 컨텍스트, ② 칸은 모델입니다." },
+      { n: 30, t: "OX", lv: 3, q: "책상이 가득 차면 지난 대화를 지우지 않고 요약본으로 접는다.", a: "O", e: "요약본은 짧아서 세부가 흐려질 수 있습니다." },
+      { n: 31, t: "상황", lv: 2, q: "다른 새 작업을 시작하기 전에 책상을 비우는 명령은?", c: ["/quiz", "/clear", "/push", "/save"], a: 1, e: "/clear 는 새 작업 전에 책상(컨텍스트)을 비웁니다." },
+      { n: 32, t: "4지선다", lv: 3, q: "/clear 를 해도 규칙과 목표가 남아 있는 까닭은?", c: ["Pages 에 올려 두어서", "매번 다시 읽히는 CLAUDE.md 에 적어 두어서", "커밋을 해 두어서", "토큰이 많아서"], a: 1, e: "CLAUDE.md 는 새 대화의 첫 부탁보다 먼저 다시 읽히는 메모입니다." },
+      { n: 33, t: "짝 맞히기", lv: 2, q: "Claude 모델 4형제와 설명을 짝 지어 봅니다.", terms: ["Fable", "Opus", "Sonnet", "Haiku"], descs: ["빠르고 균형 잡힌 모델", "가장 빠르고 가벼운 모델", "가장 똑똑하고 가장 비싼 모델", "깊게 생각하는 강한 모델(우리 수업)"], a: ["다", "라", "가", "나"], e: "똑똑할수록 느리고 비쌉니다. 우리 수업은 Opus 하나를 씁니다." },
+      { n: 34, t: "4지선다", lv: 1, q: "하단 정보줄 ② 칸에 보이는, 우리 수업에서 쓰는 모델은?", c: ["Fable", "Opus", "Sonnet", "Haiku"], a: 1, e: "수업에서는 Opus 하나를 씁니다." },
+      { n: 35, t: "OX", lv: 1, q: "Claude 도 LLM 의 하나다.", a: "O", e: "Claude 처럼 엄청 많은 글을 읽고 말을 다루는 AI 를 LLM 이라고 부릅니다." },
+      { n: 36, t: "상황", lv: 2, q: "AI 에게 같은 질문을 다시 했더니 이번엔 다른 이름을 지어 줬다. 왜일까?", c: ["인터넷이 끊겨서", "커밋을 안 해서", "AI 가 고장 나서", "다음 말을 매번 새로 골라 이어 쓰기 때문에"], a: 3, e: "AI 는 검색처럼 같은 글을 찾지 않고, 매번 새 문장을 한 조각씩 만듭니다." },
+    ]
+  },
+  {
+    name: "Part 3 · 찾아서 고치는 부탁",
+    qs: [
+      { n: 37, t: "4지선다", lv: 1, q: "Claude Code 에게 \"재생 버튼 색만 초록으로 바꿔 줘\" 라고 하면?", c: ["그 부분을 찾아 그 부분만 고친다", "아무것도 하지 않는다", "새 파일을 만든다", "파일 전체를 처음부터 다시 쓴다"], a: 0, e: "파일을 직접 열어 읽고, 고칠 줄을 찾아 그 줄만 바꿉니다." },
+      { n: 38, t: "순서", lv: 2, q: "Claude Code 가 고치는 4단계를 순서대로 놓아 봅니다.", items: { A: "파일 찾아 읽기", B: "그 부분만 수정하기", C: "부탁 이해하기", D: "고칠 곳 정하기" }, a: "CADB", e: "먼저 읽고, 찾고, 그다음 고칩니다." },
+      { n: 39, t: "OX", lv: 2, q: "파일 전체를 통째로 다시 쓰면 잘 되던 곳까지 바뀔 수 있다.", a: "O", e: "TRACK 1 에서 재생 버튼만 바꾸려다 볼륨 칸이 사라진 것처럼, 통째로 다시 쓰면 다른 곳도 바뀝니다." },
+      { n: 40, t: "4지선다", lv: 2, q: "그 부분만 고칠 때 좋은 점이 아닌 것은?", c: ["잘 되던 곳이 망가지지 않는다", "바뀐 줄로 확인할 수 있다", "파일이 저절로 Pages 에 올라간다", "빠르다"], a: 2, e: "Pages 에 올리려면 커밋하고 푸시해야 합니다." },
+      { n: 41, t: "상황", lv: 2, q: "\"색 바꿔 줘\" 라고만 부탁하면 어떤 일이 생길까?", c: ["저절로 커밋된다", "파일이 지워진다", "색이 들어간 줄이 많아 AI 가 어디인지 헷갈린다", "정확히 한 줄만 바로 바뀐다"], a: 2, e: "모호하면 후보가 많아집니다. 어디를 바꿀지 말해 줍니다." },
+      { n: 42, t: "빈칸", lv: 1, q: "또렷한 부탁에는 어디 · 무엇 · (    )이(가) 들어갑니다.", c: ["어떻게", "언제", "누가", "왜"], a: 0, e: "예: 재생 버튼(어디) 색(무엇)을 초록으로(어떻게)." },
+      { n: 43, t: "부탁 고치기", lv: 2, q: "\"색 바꿔 줘\" 를 바르게 고친 부탁은?", c: ["\"전부 다시 만들어 줘\"", "\"아무 색이나 바꿔 줘\"", "\"색 좀 예쁘게 해 줘\"", "\"재생 버튼 색을 초록으로 바꿔 줘\""], a: 3, e: "어디(재생 버튼) · 무엇(색) · 어떻게(초록으로)가 모두 들어 있습니다." },
+      { n: 44, t: "부탁 고치기", lv: 3, q: "\"그거 좀 크게 해 줘\" 를 바르게 고친 부탁은?", c: ["\"그거 진짜 크게 해 줘\"", "\"곡 제목 글자 크기를 두 배로 키워 줘\"", "\"다 크게 해 줘\"", "\"처음부터 다시 만들어 줘\""], a: 1, e: "\"그거\" 대신 어디를, \"크게\" 대신 얼마나를 말합니다." },
+      { n: 45, t: "상황", lv: 3, q: "Claude Code 가 고친 뒤 무엇이 바뀌었는지 확인하려면 어디를 보면 될까?", c: ["토큰 수", "빨강 · 초록으로 보이는 바뀐 줄", "하단 정보줄 ② 칸", "내 GitHub 아이디"], a: 1, e: "빨강 − 는 빠진 줄, 초록 + 는 들어온 줄입니다." },
+      { n: 46, t: "짝 맞히기", lv: 3, q: "평소에 하는 말과, 용어로 바꾼 부탁을 짝 지어 봅니다.", terms: ["이거 남겨 둬", "인터넷에 올려", "다시 가져와", "책상 좀 비워"], descs: ["\"week-02 를 푸시해 줘\"", "\"GitHub 의 새 커밋을 풀 해 줘\"", "\"week-02 를 커밋해 줘\"", "/clear 입력하기"], a: ["다", "가", "나", "라"], e: "용어로 말하면 AI 가 되묻지 않고 한 번에 알아듣습니다." },
+      { n: 47, t: "OX", lv: 1, q: "부탁 끝에 \"나머지는 그대로 둬\" 를 붙이면 고칠 곳이 아닌 곳은 건드리지 말라는 뜻이 된다.", a: "O", e: "그 부분만 고치라는 뜻이 더 분명해집니다." },
+      { n: 48, t: "빈칸", lv: 2, q: "\"재생 버튼 색을 초록으로 바꿔 줘\" 에서 재생 버튼은 어디 · 무엇 · 어떻게 중 (    )입니다.", c: ["무엇", "어떻게", "언제", "어디"], a: 3, e: "재생 버튼(어디) 색(무엇)을 초록으로(어떻게)." },
+      { n: 49, t: "부탁 고치기", lv: 2, q: "\"글자 좀 바꿔 줘\" 를 바르게 고친 부탁은?", c: ["\"곡 제목을 우주 산책 (라이브) 로 바꿔 줘\"", "\"아무 글자나 바꿔 줘\"", "\"처음부터 다시 써 줘\"", "\"글자 다 바꿔 줘\""], a: 0, e: "어디(곡 제목)와 어떻게(무엇으로 바꿀지)를 함께 말합니다." },
+      { n: 50, t: "순서", lv: 3, q: "고친 결과를 친구에게 보여 주기까지 순서대로 놓아 봅니다.", items: { A: "바뀐 줄 확인하기", B: "커밋하고 푸시하기", C: "그 부분만 고쳐 달라고 부탁하기", D: "Pages 주소로 열어 보기" }, a: "CABD", e: "부탁하고, 바뀐 줄을 확인한 뒤, 커밋 · 푸시하면 Pages 주소로 새 모습을 봅니다." },
+    ]
+  }
+];
+
+const NUM = ["①", "②", "③", "④"];
+const KOR = ["가", "나", "다", "라"];
+const LV = ["", "★ 쉬움", "★★ 보통", "★★★ 어려움"];
+const MAX_HEARTS = 5;
+
+const $ = id => document.getElementById(id);
+let part, idx, score, hearts, answered, results;
+
+// ===== 화면 전환 =====
+function show(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
+}
+
+PARTS.forEach((p, i) => {
+  const b = document.createElement("button");
+  b.className = "part-btn";
+  b.innerHTML = `<span class="big">${p.name}</span><small>${p.qs.length}문제 · Q${p.qs[0].n}~Q${p.qs[p.qs.length - 1].n}</small>`;
+  b.onclick = () => startPart(i);
+  $("partList").appendChild(b);
+});
+
+function startPart(i) {
+  part = PARTS[i];
+  idx = 0; score = 0; hearts = MAX_HEARTS;
+  results = [];
+  $("hudPart").textContent = part.name;
+  $("modal").classList.remove("on");
+  resetScene();
+  show("game");
+  updateHud();
+}
+
+function updateHud() {
+  const total = part.qs.length;
+  $("hudCount").textContent = idx < total
+    ? `제단 ${idx + 1} / ${total} · 점수 ${score}`
+    : `모든 제단 통과 · 점수 ${score} · EXIT 로 달려라!`;
+  $("hearts").innerHTML = Array.from({ length: MAX_HEARTS }, (_, i) =>
+    `<span class="${i < hearts ? "" : "lost"}">❤️</span>`).join("");
+  $("dots").innerHTML = part.qs.map((q, i) => {
+    const cls = results[i] === true ? "ok" : results[i] === false ? "bad" : i === idx ? "now" : "";
+    return `<span class="dot ${cls}">${q.n}</span>`;
+  }).join("");
+}
+
+// ===== 문제 창 열고 닫기 =====
+function openQuestion() {
+  paused = true;
+  P.vx = 0;
+  keys.left = keys.right = keys.jump = false;
+  renderQuestion();
+  $("modal").classList.add("on");
+}
+
+function closeQuestion() {
+  $("modal").classList.remove("on");
+  updateHud();
+  paused = false;
+}
+
+// ===== 문제 보여 주기 =====
+function renderQuestion() {
+  const q = part.qs[idx];
+  answered = false;
+  updateHud();
+  $("qType").textContent = `Q${q.n} · ${q.t}`;
+  $("qLv").textContent = LV[q.lv];
+  $("qText").textContent = q.q;
+  const fb = $("feedback");
+  fb.className = "feedback";
+  fb.innerHTML = "";
+  const area = $("answerArea");
+  area.innerHTML = "";
+
+  if (q.t === "OX") renderOX(q, area);
+  else if (q.t === "순서") renderOrder(q, area);
+  else if (q.t === "짝 맞히기") renderMatch(q, area);
+  else renderChoices(q, area);
+}
+
+function renderChoices(q, area) {
+  const box = document.createElement("div");
+  box.className = "choices";
+  q.c.forEach((text, i) => {
+    const b = document.createElement("button");
+    b.className = "choice";
+    b.textContent = `${NUM[i]} ${text}`;
+    b.onclick = () => {
+      const ok = i === q.a;
+      box.querySelectorAll("button").forEach((x, j) => {
+        x.disabled = true;
+        if (j === q.a) x.classList.add("right");
+      });
+      if (!ok) b.classList.add("wrong");
+      finish(ok, `${NUM[q.a]} ${q.c[q.a]}`);
+    };
+    box.appendChild(b);
+  });
+  area.appendChild(box);
+}
+
+function renderOX(q, area) {
+  const row = document.createElement("div");
+  row.className = "oxrow";
+  ["O", "X"].forEach(v => {
+    const b = document.createElement("button");
+    b.className = "ox";
+    b.textContent = v;
+    b.onclick = () => {
+      const ok = v === q.a;
+      row.querySelectorAll("button").forEach(x => {
+        x.disabled = true;
+        if (x.textContent === q.a) x.classList.add("right");
+      });
+      if (!ok) b.classList.add("wrong");
+      finish(ok, q.a);
+    };
+    row.appendChild(b);
+  });
+  area.appendChild(row);
+}
+
+function renderOrder(q, area) {
+  let picked = [];
+  const slots = document.createElement("div");
+  slots.className = "slots";
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  const submit = document.createElement("button");
+  submit.className = "go";
+  submit.textContent = "확인";
+  const reset = document.createElement("button");
+  reset.className = "tool";
+  reset.textContent = "다시 놓기";
+
+  function draw() {
+    slots.innerHTML = [0, 1, 2, 3].map(i =>
+      `<div class="slot ${picked[i] ? "filled" : ""}">${picked[i] || ""}</div>`
+    ).join('<span class="arrow">→</span>');
+    chips.querySelectorAll(".chip").forEach(c => {
+      const used = picked.includes(c.dataset.k);
+      c.classList.toggle("used", used);
+      c.disabled = used || answered;
+    });
+    submit.disabled = picked.length < 4 || answered;
+    reset.disabled = answered;
+  }
+
+  Object.entries(q.items).forEach(([k, text]) => {
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.dataset.k = k;
+    b.innerHTML = `<b>${k}</b>${text}`;
+    b.onclick = () => { picked.push(k); draw(); };
+    chips.appendChild(b);
+  });
+  reset.onclick = () => { picked = []; draw(); };
+  submit.onclick = () => {
+    const ok = picked.join("") === q.a;
+    finish(ok, q.a.split("").join(" → "));
+    draw();
+  };
+
+  const tip = document.createElement("p");
+  tip.className = "warn";
+  tip.textContent = "먼저 일어나는 것부터 차례로 눌러 칸을 채우세요.";
+  actions.append(submit, reset);
+  area.append(slots, chips, actions, tip);
+  draw();
+}
+
+function renderMatch(q, area) {
+  const pick = [null, null, null, null];
+  const ul = document.createElement("ul");
+  ul.className = "desc";
+  ul.innerHTML = q.descs.map((d, i) => `<li><b>${KOR[i]}</b>${d}</li>`).join("");
+  area.appendChild(ul);
+
+  const rows = document.createElement("div");
+  q.terms.forEach((term, ti) => {
+    const row = document.createElement("div");
+    row.className = "match-row";
+    row.innerHTML = `<span class="term">${ti + 1} ${term}</span>`;
+    const opts = document.createElement("div");
+    opts.className = "opts";
+    KOR.forEach(k => {
+      const b = document.createElement("button");
+      b.className = "pick";
+      b.textContent = k;
+      b.onclick = () => {
+        if (answered) return;
+        pick[ti] = k;
+        opts.querySelectorAll(".pick").forEach(x => x.classList.toggle("sel", x.textContent === k));
+        submit.disabled = pick.includes(null);
+      };
+      opts.appendChild(b);
+    });
+    row.appendChild(opts);
+    rows.appendChild(row);
+  });
+  area.appendChild(rows);
+
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  const submit = document.createElement("button");
+  submit.className = "go";
+  submit.textContent = "확인";
+  submit.disabled = true;
+  const warn = document.createElement("p");
+  warn.className = "warn";
+  submit.onclick = () => {
+    if (new Set(pick).size < 4) {
+      warn.textContent = "같은 설명을 두 번 골랐어요. 설명은 하나씩만 짝 지을 수 있어요.";
+      return;
+    }
+    warn.textContent = "";
+    submit.disabled = true;
+    rows.querySelectorAll(".pick").forEach(x => x.disabled = true);
+    const ok = pick.every((k, i) => k === q.a[i]);
+    finish(ok, q.a.map((k, i) => `${i + 1}-${k}`).join(" · "));
+  };
+  actions.appendChild(submit);
+  area.append(actions, warn);
+}
+
+// ===== 채점 =====
+function finish(ok, answerText) {
+  if (answered) return;
+  answered = true;
+  results[idx] = ok;
+  if (ok) { score++; setCheckpoint(); }
+  else enrageMonster();
+  updateHud();
+
+  const q = part.qs[idx];
+  const fb = $("feedback");
+  fb.className = "feedback on " + (ok ? "ok" : "no");
+  fb.innerHTML = ok
+    ? `<span class="big">🔥 정답! 체크포인트가 켜졌다</span><br>${q.e}`
+    : `<span class="big">💀 오답! 악마가 분노해 바짝 다가온다</span><br>정답: <b>${answerText}</b><br>${q.e}`;
+
+  const last = idx === part.qs.length - 1;
+  const next = document.createElement("button");
+  next.className = "go";
+  next.style.marginTop = "12px";
+  next.textContent = last ? "EXIT 로 달려라 →" : "계속 달리기 →";
+  next.onclick = () => { idx++; closeQuestion(); };
+  fb.appendChild(document.createElement("br"));
+  fb.appendChild(next);
+  next.focus({ preventScroll: true });
+}
+
+function endGame() {
+  const total = part.qs.length;
+  const escaped = hearts > 0;
+  $("endTitle").textContent = escaped ? "🔥 지옥 탈출 성공!" : "💀 지옥에 붙잡혔다…";
+  $("endTitle").style.color = escaped ? "var(--ember)" : "#ff6b7d";
+  $("endScore").textContent = `${score} / ${total}`;
+  $("endMsg").textContent = escaped
+    ? `남은 하트 ${hearts}개로 탈출했습니다. ${score === total ? "한 문제도 틀리지 않았어요!" : "틀린 문제를 다시 풀어 만점에 도전해 보세요."}`
+    : `하트를 모두 잃었습니다. 제단 ${total}개 중 ${idx}개를 지났어요. 다시 도전해 보세요.`;
+  show("end");
+}
+
+$("retryBtn").onclick = () => startPart(PARTS.indexOf(part));
+$("homeBtn").onclick = () => show("start");
+
+// ===== 파쿠르 장면 =====
+const cv = $("cv");
+const ctx = cv.getContext("2d");
+const W = cv.width, H = cv.height, GY = 300;   // GY = 바닥 높이
+const GRAV = 1700, JUMP = 640, RUN = 340;
+const keys = { left: false, right: false, jump: false };
+let level = null, P, M, cam = 0, checkpoint, paused = true, started = false, ended = false;
+let invul = 0, flash = 0, jumpBuf = 0, msg = null, runId = 0, t = 0;
+const embers = Array.from({ length: 45 }, () => ({ x: Math.random() * W, y: Math.random() * H, s: 0.5 + Math.random() * 1.5, r: 1 + Math.random() * 2 }));
+
+// 같은 Part 는 다시 풀어도 같은 길이 나오게 하는 난수
+function seeded(a) {
+  return () => {
+    a = a + 0x6D2B79F5 | 0;
+    let x = Math.imul(a ^ a >>> 15, 1 | a);
+    x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x;
+    return ((x ^ x >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// 제단 사이마다 구덩이 · 바위 · 가시 · 떠 있는 발판을 섞어 길을 만든다
+function buildLevel(count, seed) {
+  const rnd = seeded(seed);
+  const r = (a, b) => a + rnd() * (b - a);
+  const solids = [], spikes = [], altars = [];
+  let x = 0, gStart = -400;
+  const closeGround = () => solids.push({ x: gStart, y: GY, w: x - gStart, h: H - GY + 100 });
+
+  x = 420;
+  for (let i = 0; i < count; i++) {
+    const hard = i / Math.max(1, count - 1);
+    const n = 3 + Math.floor(rnd() * 2) + (hard > 0.5 ? 1 : 0);
+    for (let k = 0; k < n; k++) {
+      const type = Math.floor(rnd() * 4);
+      if (type === 0) {                       // 용암 구덩이
+        closeGround(); x += r(80, 110 + 30 * hard); gStart = x;
+      } else if (type === 1) {                // 바위 블록
+        const w = r(110, 190), h = r(45, 75);
+        solids.push({ x, y: GY - h, w, h }); x += w;
+      } else if (type === 2) {                // 가시
+        const w = r(28, 50 + 20 * hard);
+        spikes.push({ x, y: GY - 16, w, h: 16 }); x += w;
+      } else {                                // 넓은 구덩이 위 떠 있는 발판
+        closeGround();
+        x += r(70, 100);
+        const pw = r(120, 160);
+        solids.push({ x, y: GY - r(40, 70), w: pw, h: 18, float: true });
+        x += pw + r(70, 100); gStart = x;
+      }
+      x += r(240, 320);
+    }
+    x += 140;
+    altars.push({ x, i, state: "wait" });
+    x += 260;
+  }
+  const exitX = x + 160;
+  x += 600;
+  closeGround();
+  return { solids, spikes, altars, exitX };
+}
+
+function resetScene() {
+  runId++;
+  level = buildLevel(part.qs.length, PARTS.indexOf(part) * 1000 + 7);
+  P = { x: 40, y: GY - 36, w: 22, h: 36, vx: 0, vy: 0, onGround: true, coyote: 0, face: 1 };
+  checkpoint = { x: 40 };
+  M = { x: -420, y: GY - 90, rage: 0 };
+  cam = P.x - 300;
+  paused = false; started = false; ended = false;
+  invul = 0; flash = 0; jumpBuf = 0;
+  keys.left = keys.right = keys.jump = false;
+  msg = { text: "→ 키를 눌러 달려라! 움직이는 순간 악마가 쫓아온다", t: 3.5 };
+}
+
+function setCheckpoint() {
+  const a = level.altars[idx];
+  a.state = "ok";
+  checkpoint = { x: a.x + 30 };
+}
+
+function enrageMonster() {
+  level.altars[idx].state = "bad";
+  M.x = Math.max(M.x, P.x - 200);
+  M.rage = 3;
+  started = true;
+}
+
+function respawn() {
+  P.x = checkpoint.x; P.y = GY - P.h;
+  P.vx = 0; P.vy = 0;
+  invul = 1.5;
+  M.x = P.x - 420; M.y = GY - 90; M.rage = 0;
+  started = false;
+}
+
+function hurt(text) {
+  hearts--;
+  flash = 1;
+  updateHud();
+  if (hearts <= 0) {
+    ended = true;
+    msg = { text: "💀 " + text, t: 3 };
+    const run = runId;
+    setTimeout(() => { if (run === runId) endGame(); }, 1300);
+    return;
+  }
+  msg = { text: `${text}  -❤️  체크포인트에서 다시 시작`, t: 2.2 };
+  respawn();
+}
+
+const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+function update(dt) {
+  t += dt;
+  flash = Math.max(0, flash - dt * 2);
+  if (msg && (msg.t -= dt) <= 0) msg = null;
+  embers.forEach(e => {
+    e.y -= e.s * 40 * dt;
+    if (e.y < -5) { e.y = H + 5; e.x = Math.random() * W; }
+  });
+  if (!level || paused || ended) return;
+
+  invul = Math.max(0, invul - dt);
+  jumpBuf = Math.max(0, jumpBuf - dt);
+
+  // 좌우 이동과 점프
+  const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+  if (dir) { P.face = dir; started = true; }
+  P.vx += (dir * RUN - P.vx) * Math.min(1, dt * (P.onGround ? 14 : 7));
+  P.coyote = P.onGround ? 0.1 : Math.max(0, P.coyote - dt);
+  if (jumpBuf > 0 && P.coyote > 0) {
+    P.vy = -JUMP; P.coyote = 0; jumpBuf = 0; P.onGround = false; started = true;
+  }
+  P.vy = Math.min(1000, P.vy + GRAV * (P.vy < 0 && !keys.jump ? 2.2 : 1) * dt);
+
+  P.x += P.vx * dt;
+  if (P.x < -380) { P.x = -380; P.vx = 0; }
+  for (const s of level.solids) {
+    if (!overlap(P, s)) continue;
+    if (P.vx > 0) P.x = s.x - P.w; else if (P.vx < 0) P.x = s.x + s.w;
+    P.vx = 0;
+  }
+  P.y += P.vy * dt;
+  P.onGround = false;
+  for (const s of level.solids) {
+    if (!overlap(P, s)) continue;
+    if (P.vy > 0) { P.y = s.y - P.h; P.onGround = true; } else P.y = s.y + s.h;
+    P.vy = 0;
+  }
+
+  // 위험한 것들
+  if (P.y > H + 40) return hurt("용암에 빠졌다!");
+  if (invul <= 0) {
+    for (const s of level.spikes) {
+      if (overlap(P, { x: s.x + 4, y: s.y + 4, w: s.w - 8, h: s.h })) return hurt("가시에 찔렸다!");
+    }
+  }
+
+  // 악마는 하늘을 날아 쫓아온다
+  if (started) {
+    M.rage = Math.max(0, M.rage - dt);
+    const speed = 190 + idx * 5 + (M.rage > 0 ? 120 : 0);
+    const dx = P.x - M.x;
+    M.x += Math.sign(dx) * Math.min(Math.abs(dx), speed * dt);
+    M.y += (P.y - 30 - M.y) * Math.min(1, dt * 2);
+    if (invul <= 0 && Math.hypot(P.x + P.w / 2 - M.x, P.y + P.h / 2 - (M.y + 20)) < 34) return hurt("악마에게 잡혔다!");
+  }
+
+  // 제단에 닿으면 문제
+  const a = level.altars[idx];
+  if (a && P.x + P.w / 2 >= a.x) return openQuestion();
+
+  // 모든 제단을 지나 EXIT 에 닿으면 탈출
+  if (idx >= part.qs.length && P.x + P.w >= level.exitX) {
+    ended = true;
+    msg = { text: "🔥 지옥을 빠져나왔다!", t: 3 };
+    const run = runId;
+    setTimeout(() => { if (run === runId) endGame(); }, 1200);
+  }
+
+  cam += (P.x - 300 - cam) * Math.min(1, dt * 6);
+}
+
+// ----- 그리기 -----
+function drawBackground() {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#160103");
+  g.addColorStop(0.55, "#4a0c08");
+  g.addColorStop(1, "#8a2508");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // 먼 바위산
+  ctx.fillStyle = "#2a0606";
+  ctx.beginPath();
+  ctx.moveTo(0, GY);
+  const far = cam * 0.2;
+  for (let x = -40; x <= W + 40; x += 20) {
+    const wx = x + far;
+    ctx.lineTo(x, GY - 70 - Math.sin(wx * 0.013) * 30 - Math.sin(wx * 0.031) * 18);
+  }
+  ctx.lineTo(W, GY);
+  ctx.fill();
+
+  // 가까운 돌기둥
+  ctx.fillStyle = "#170303";
+  const gap = 260, off = ((cam * 0.5) % gap + gap) % gap;
+  for (let x = -off; x < W + gap; x += gap) {
+    ctx.beginPath();
+    ctx.moveTo(x, GY);
+    ctx.lineTo(x + 20, GY - 105);
+    ctx.lineTo(x + 34, GY - 135);
+    ctx.lineTo(x + 46, GY - 100);
+    ctx.lineTo(x + 66, GY);
+    ctx.fill();
+  }
+
+  // 용암 (바닥 아래 구덩이로 보인다)
+  const lava = ctx.createLinearGradient(0, H - 50, 0, H);
+  lava.addColorStop(0, "#ff5a1f");
+  lava.addColorStop(1, "#ffd166");
+  ctx.fillStyle = lava;
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  for (let x = 0; x <= W; x += 10) ctx.lineTo(x, H - 44 + Math.sin(x * 0.05 + t * 3 + cam * 0.05) * 5);
+  ctx.lineTo(W, H);
+  ctx.fill();
+
+  embers.forEach(e => {
+    ctx.fillStyle = `rgba(255,${150 + e.r * 30},60,${0.5 + e.r * 0.15})`;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawSolid(s) {
+  ctx.fillStyle = s.float ? "#2e1210" : "#211010";
+  ctx.fillRect(s.x, s.y, s.w, Math.min(s.h, H - s.y));
+  ctx.fillStyle = "#3d1712";
+  for (let x = s.x + 14; x < s.x + s.w - 10; x += 46) ctx.fillRect(x, s.y + 14, 18, 4);
+  ctx.fillStyle = "#ff5a1f";
+  ctx.globalAlpha = 0.75 + 0.25 * Math.sin(t * 3 + s.x);
+  ctx.fillRect(s.x, s.y, s.w, 3);
+  ctx.globalAlpha = 1;
+  if (s.float) {
+    ctx.fillStyle = "rgba(255,90,31,.35)";
+    ctx.fillRect(s.x + 6, s.y + s.h, s.w - 12, 3);
+  }
+}
+
+function drawSpikes(s) {
+  const n = Math.max(2, Math.round(s.w / 12)), sw = s.w / n;
+  ctx.fillStyle = "#d9d0c7";
+  ctx.strokeStyle = "#7a1010";
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < n; i++) {
+    ctx.beginPath();
+    ctx.moveTo(s.x + i * sw, GY);
+    ctx.lineTo(s.x + i * sw + sw / 2, s.y);
+    ctx.lineTo(s.x + (i + 1) * sw, GY);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  }
+}
+
+function drawAltar(a) {
+  const x = a.x, y = GY, isNext = a.i === idx;
+  ctx.fillStyle = "#3a1a1a";
+  ctx.fillRect(x - 13, y - 54, 26, 54);
+  ctx.fillRect(x - 22, y - 62, 44, 10);
+  ctx.fillRect(x - 20, y - 6, 40, 6);
+  const col = a.state === "ok" ? "#59d98e" : a.state === "bad" ? "#ff4060" : "#ffb347";
+  const fh = 18 + Math.sin(t * 10 + x) * 4;
+  ctx.fillStyle = col;
+  ctx.shadowColor = col; ctx.shadowBlur = 22;
+  ctx.beginPath();
+  ctx.moveTo(x - 10, y - 62);
+  ctx.quadraticCurveTo(x - 4, y - 62 - fh * 1.2, x, y - 62 - fh * 1.7);
+  ctx.quadraticCurveTo(x + 4, y - 62 - fh * 1.2, x + 10, y - 62);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffd166";
+  ctx.font = "bold 11px 'Noto Sans KR', sans-serif";
+  ctx.fillText("Q" + part.qs[a.i].n, x, y - 28);
+  ctx.font = "bold 14px 'Noto Sans KR', sans-serif";
+  if (a.state === "ok") {
+    ctx.fillStyle = "#59d98e";
+    ctx.fillText("✔ 체크포인트", x, y - 108);
+  } else if (a.state === "bad") {
+    ctx.fillStyle = "#ff4060";
+    ctx.fillText("✕", x, y - 108);
+  } else if (isNext) {
+    ctx.fillStyle = "#fff3c4";
+    ctx.font = "bold 26px 'Black Han Sans', sans-serif";
+    ctx.fillText("?", x, y - 104 + Math.sin(t * 5) * 5);
+  }
+}
+
+function drawExit() {
+  const x = level.exitX, open = idx >= part.qs.length;
+  if (open) {
+    const glow = ctx.createRadialGradient(x + 30, GY - 70, 5, x + 30, GY - 70, 130);
+    glow.addColorStop(0, "rgba(255,255,220,.95)");
+    glow.addColorStop(0.4, "rgba(255,220,140,.4)");
+    glow.addColorStop(1, "rgba(255,200,100,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - 100, GY - 200, 260, 200);
+  }
+  ctx.fillStyle = "#2a0d0c";
+  ctx.fillRect(x - 10, GY - 140, 80, 140);
+  ctx.fillStyle = open ? "#fff6d5" : "#120404";
+  ctx.fillRect(x + 4, GY - 126, 52, 126);
+  ctx.textAlign = "center";
+  ctx.font = "bold 15px 'Noto Sans KR', sans-serif";
+  ctx.fillStyle = open ? "#ffcf6b" : "#7a5a50";
+  ctx.fillText(open ? "EXIT" : "🔒 잠김", x + 30, GY - 150);
+}
+
+function drawMonster() {
+  const x = M.x, y = M.y + Math.sin(t * 4) * 6, angry = M.rage > 0;
+  const size = angry ? 1.25 : 1;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size, size);
+  const aura = ctx.createRadialGradient(0, 20, 10, 0, 20, 70);
+  aura.addColorStop(0, angry ? "rgba(255,40,40,.55)" : "rgba(160,20,30,.35)");
+  aura.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = aura;
+  ctx.fillRect(-80, -80, 160, 170);
+  const poly = pts => { ctx.beginPath(); pts.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.closePath(); };
+  const edge = angry ? "#ff3a2a" : "#9a1414";
+  ctx.lineJoin = "miter";
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = edge;
+
+  // 박쥐 날개 (펄럭임)
+  const flap = Math.sin(t * 9) * 0.35;
+  [-1, 1].forEach(s => {
+    ctx.save();
+    ctx.translate(s * 12, 2);
+    ctx.rotate(s * flap);
+    ctx.scale(s, 1);
+    ctx.fillStyle = "#1a0204";
+    poly([[0, 0], [30, -36], [62, -44], [54, -20], [44, -28], [40, -6], [28, -16], [18, 6], [0, 10]]);
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(4, 2); ctx.lineTo(54, -20);
+    ctx.moveTo(4, 2); ctx.lineTo(40, -6);
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // 꼬리 (끝이 화살촉)
+  const tw = Math.sin(t * 5) * 8;
+  ctx.strokeStyle = "#2a0306";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(-2, 50);
+  ctx.quadraticCurveTo(-46, 74, -52, 40 + tw);
+  ctx.stroke();
+  ctx.fillStyle = edge;
+  poly([[-52, 26 + tw], [-62, 44 + tw], [-42, 44 + tw]]);
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = edge;
+
+  // 몸통 (각진 상체, 아래는 연기처럼 흐려짐)
+  const body = ctx.createLinearGradient(0, 0, 0, 62);
+  body.addColorStop(0, "#4a0a0c");
+  body.addColorStop(1, "rgba(20,0,0,.15)");
+  ctx.fillStyle = body;
+  poly([[-24, 0], [24, 0], [17, 26], [8, 46], [0, 62], [-8, 46], [-17, 26]]);
+  ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "rgba(255,90,31,.5)";      // 갈비뼈
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    ctx.moveTo(-12 + i * 2, 12 + i * 9); ctx.lineTo(0, 16 + i * 9); ctx.lineTo(12 - i * 2, 12 + i * 9);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = edge;
+
+  // 앞으로 뻗은 팔과 발톱
+  const reach = Math.sin(t * 8) * 6;
+  ctx.strokeStyle = "#2a0306";
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(18, 6); ctx.lineTo(36, 22); ctx.lineTo(54 + reach, 10);
+  ctx.stroke();
+  ctx.strokeStyle = "#e8dcc8";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  [-7, 0, 7].forEach(o => { ctx.moveTo(54 + reach, 10); ctx.lineTo(66 + reach, 10 + o - 3); });
+  ctx.stroke();
+
+  // 머리 (각진 해골 모양, 뾰족한 턱)
+  ctx.fillStyle = "#2a0306";
+  ctx.strokeStyle = edge;
+  poly([[-14, -8], [-17, -24], [-10, -35], [10, -35], [17, -24], [14, -8], [0, 4]]);
+  ctx.fill(); ctx.stroke();
+
+  // 휘어진 뿔
+  ctx.fillStyle = "#d9c9b0";
+  ctx.strokeStyle = "#5a3a2a";
+  [-1, 1].forEach(s => {
+    ctx.beginPath();
+    ctx.moveTo(s * 9, -32);
+    ctx.quadraticCurveTo(s * 36, -40, s * 28, -70);
+    ctx.quadraticCurveTo(s * 24, -46, s * 3, -35);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  });
+
+  // 찢어진 눈
+  ctx.fillStyle = "#ffe14a";
+  ctx.shadowColor = "#ff0000"; ctx.shadowBlur = 16;
+  poly([[-12, -24], [-3, -20], [-4, -17], [-12, -20]]);
+  ctx.fill();
+  poly([[12, -24], [3, -20], [4, -17], [12, -20]]);
+  ctx.fill();
+
+  // 이빨 난 입
+  ctx.fillStyle = "#ff5a1f";
+  poly([[-9, -12], [9, -12], [0, -3]]);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#fff4e0";
+  for (let i = 0; i < 4; i++) {
+    const tx = -8 + i * 4.5;
+    poly([[tx, -12], [tx + 3.5, -12], [tx + 1.75, -8]]);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawHero() {
+  if (invul > 0 && Math.floor(t * 14) % 2) return;
+  const air = !P.onGround;
+  const moving = Math.abs(P.vx) > 20 && !air;
+  const swing = moving ? Math.sin(t * 18) : 0;
+  const cx = P.x + P.w / 2, by = P.y + P.h;
+  ctx.save();
+  ctx.translate(cx, by);
+  ctx.scale(P.face, 1);
+  ctx.strokeStyle = "#f3e6d8";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.beginPath();          // 다리
+  if (air) {
+    ctx.moveTo(0, -16); ctx.lineTo(8, -8); ctx.lineTo(2, 0);
+    ctx.moveTo(0, -16); ctx.lineTo(-8, -6);
+  } else {
+    ctx.moveTo(0, -16); ctx.lineTo(swing * 10, 0);
+    ctx.moveTo(0, -16); ctx.lineTo(-swing * 10, 0);
+  }
+  ctx.stroke();
+  ctx.beginPath();          // 몸
+  ctx.moveTo(0, -16); ctx.lineTo(2, -34);
+  ctx.stroke();
+  ctx.beginPath();          // 팔
+  const arm = air ? -1 : swing;
+  ctx.moveTo(2, -30); ctx.lineTo(2 - arm * 10, air ? -40 : -20);
+  ctx.moveTo(2, -30); ctx.lineTo(2 + arm * 10, air ? -40 : -20);
+  ctx.stroke();
+  ctx.strokeStyle = "#ff5a1f";   // 목도리
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(1, -34);
+  ctx.quadraticCurveTo(-10, -36 + Math.sin(t * 12) * 3, -20, -30 + Math.sin(t * 10) * 4);
+  ctx.stroke();
+  ctx.fillStyle = "#f3e6d8";     // 머리
+  ctx.beginPath();
+  ctx.arc(3, -42, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#1a0505";
+  ctx.fillRect(6, -45, 3, 3);
+  ctx.restore();
+}
+
+// 화면 위쪽 정보: 길 지도 · 악마 거리 · 알림
+function drawOverlay() {
+  const x0 = 24, x1 = W - 24, y = 22;
+  const span = level.exitX + 60;
+  const mx = v => x0 + Math.max(0, Math.min(1, v / span)) * (x1 - x0);
+  ctx.fillStyle = "rgba(0,0,0,.5)";
+  ctx.fillRect(x0 - 10, y - 12, x1 - x0 + 20, 24);
+  ctx.strokeStyle = "#4a1712";
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+  level.altars.forEach(a => {
+    ctx.fillStyle = a.state === "ok" ? "#59d98e" : a.state === "bad" ? "#ff4060" : "#7a5a50";
+    ctx.fillRect(mx(a.x) - 2, y - 6, 4, 12);
+  });
+  ctx.fillStyle = "#ffcf6b";
+  ctx.fillRect(mx(level.exitX) - 4, y - 8, 8, 16);
+  if (started) {
+    ctx.fillStyle = "#ff2a2a";
+    ctx.beginPath(); ctx.arc(mx(M.x), y, 5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.arc(mx(P.x), y, 6, 0, Math.PI * 2); ctx.fill();
+
+  // 악마가 가까우면 왼쪽이 붉게 물든다
+  const dist = P.x - M.x;
+  if (started && dist < 260 && !ended) {
+    const k = 1 - Math.max(0, dist) / 260;
+    const v = ctx.createLinearGradient(0, 0, 220, 0);
+    v.addColorStop(0, `rgba(196,18,47,${0.55 * k})`);
+    v.addColorStop(1, "rgba(196,18,47,0)");
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, 220, H);
+    ctx.fillStyle = `rgba(255,107,125,${0.6 + 0.4 * Math.sin(t * 10)})`;
+    ctx.font = "bold 16px 'Noto Sans KR', sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("⚠ 악마가 바로 뒤에 있다!", 20, 60);
+  }
+
+  if (msg) {
+    ctx.font = "bold 20px 'Noto Sans KR', sans-serif";
+    ctx.textAlign = "center";
+    const w = ctx.measureText(msg.text).width + 40;
+    ctx.globalAlpha = Math.min(1, msg.t * 2);
+    ctx.fillStyle = "rgba(20,4,4,.85)";
+    ctx.fillRect(W / 2 - w / 2, 82, w, 40);
+    ctx.strokeStyle = "#ff5a1f";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(W / 2 - w / 2, 82, w, 40);
+    ctx.fillStyle = "#ffd9a0";
+    ctx.fillText(msg.text, W / 2, 109);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawWorld() {
+  ctx.save();
+  ctx.translate(-Math.round(cam), 0);
+  const inView = (x, w) => x + w > cam - 50 && x < cam + W + 50;
+  level.solids.forEach(s => inView(s.x, s.w) && drawSolid(s));
+  level.spikes.forEach(s => inView(s.x, s.w) && drawSpikes(s));
+  level.altars.forEach(a => inView(a.x - 30, 60) && drawAltar(a));
+  if (inView(level.exitX - 100, 260)) drawExit();
+  drawHero();
+  if (started || M.x > cam - 80) drawMonster();
+  ctx.restore();
+}
+
+// ----- 조작 -----
+const KEYMAP = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", ArrowUp: "jump", KeyW: "jump", Space: "jump" };
+addEventListener("keydown", e => {
+  const k = KEYMAP[e.code];
+  if (!k || !$("game").classList.contains("on") || paused) return;
+  e.preventDefault();
+  if (k === "jump" && !keys.jump) jumpBuf = 0.12;
+  keys[k] = true;
+});
+addEventListener("keyup", e => {
+  const k = KEYMAP[e.code];
+  if (k) keys[k] = false;
+});
+document.querySelectorAll(".pad").forEach(b => {
+  const k = b.dataset.k;
+  const down = e => { e.preventDefault(); if (paused) return; if (k === "jump" && !keys.jump) jumpBuf = 0.12; keys[k] = true; };
+  const up = () => { keys[k] = false; };
+  b.addEventListener("pointerdown", down);
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, up));
+});
+
+let lastTime = performance.now();
+function loop(now) {
+  const dt = Math.min(0.033, (now - lastTime) / 1000);
+  lastTime = now;
+  update(dt);
+  drawBackground();
+  if (level) {
+    drawWorld();
+    drawOverlay();
+  }
+  if (flash > 0) {
+    ctx.fillStyle = `rgba(196,18,47,${flash * 0.45})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
