@@ -10,7 +10,9 @@ from PySide6.QtCore import QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication, QPixmap
 from PySide6.QtWidgets import QApplication, QLabel, QMenu
 
-FRAMES = Path(__file__).parent / "art" / "frames"
+# exe 로 묶으면 그림이 임시 폴더(sys._MEIPASS)에 풀린다
+BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
+FRAMES = BASE / "art" / "frames"
 PET_HEIGHT = 160  # 화면에 보일 펫 높이(px)
 MARGIN = 12       # 화면 구석에서 띄울 거리(px)
 REST_MS = 500     # 키를 멈추고 이만큼 지나면 평소 모습으로 (밀리초)
