@@ -106,6 +106,10 @@ class Pet(QLabel):
     # --- 오른쪽 클릭 메뉴 ---
     def contextMenuEvent(self, event):
         menu = QMenu(self)
+        # 보기만 하는 줄 (눌러도 아무 일 없음). 숫자는 메모리에만 있다
+        count = menu.addAction(f"지금까지 {self.tap_count:,}번 눌렀어")
+        count.setEnabled(False)
+        menu.addSeparator()
         menu.addAction("끄기", QApplication.quit)
         menu.exec(event.globalPos())
 
