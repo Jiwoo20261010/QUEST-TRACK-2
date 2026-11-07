@@ -3,6 +3,7 @@
 실행: week-03 폴더에서  .venv\\Scripts\\python pet.py
 """
 import sys
+import winsound  # Python 기본 내장 (Windows 소리 재생)
 from pathlib import Path
 
 from pynput import keyboard
@@ -13,6 +14,7 @@ from PySide6.QtWidgets import QApplication, QLabel, QMenu
 # exe 로 묶으면 그림이 임시 폴더(sys._MEIPASS)에 풀린다
 BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
 FRAMES = BASE / "art" / "frames"
+TAK = str(BASE / "art" / "tak.wav")
 PET_HEIGHT = 160  # 화면에 보일 펫 높이(px)
 MARGIN = 12       # 화면 구석에서 띄울 거리(px)
 REST_MS = 500     # 키를 멈추고 이만큼 지나면 평소 모습으로 (밀리초)
@@ -73,6 +75,10 @@ class Pet(QLabel):
         # ② 와 ③ 을 번갈아 보여 줘서 두드리는 것처럼 보이게
         self.show_frame(self.next_frame)
         self.next_frame = "type_b" if self.next_frame == "type_a" else "type_a"
+        # 앞발이 내려가는 그림마다 "탁". ASYNC = 소리가 끝나길 기다리지 않음
+        winsound.PlaySound(
+            TAK, winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT
+        )
         self.rest_timer.start()  # 누를 때마다 다시 0.5초 세기
         self.sleep_timer.start()  # 누를 때마다 졸기까지 다시 10초 세기 (졸고 있었으면 깨어남)
 
