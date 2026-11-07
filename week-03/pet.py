@@ -5,13 +5,34 @@
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from pynput import keyboard
+from PySide6.QtCore import QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication, QPixmap
 from PySide6.QtWidgets import QApplication, QLabel, QMenu
 
 FRAMES = Path(__file__).parent / "art" / "frames"
 PET_HEIGHT = 160  # 화면에 보일 펫 높이(px)
 MARGIN = 12       # 화면 구석에서 띄울 거리(px)
+REST_MS = 500     # 키를 멈추고 이만큼 지나면 평소 모습으로 (밀리초)
+
+
+class KeyTap(QObject):
+    """키가 눌렸다는 '신호'만 보낸다.
+    어떤 키인지는 보지도, 저장하지도, 보내지도 않는다 (이번 주 규칙)."""
+
+    tapped = Signal()
+
+    def __init__(self):
+        super().__init__()
+        # on_press 가 받는 key 값은 일부러 쓰지 않고 버린다
+        self.listener = keyboard.Listener(on_press=lambda _key: self.tapped.emit())
+        self.listener.daemon = True
+
+    def start(self):
+        self.listener.start()
+
+    def stop(self):
+        self.listener.stop()
 
 
 class Pet(QLabel):
@@ -33,6 +54,19 @@ class Pet(QLabel):
         }
         self.show_frame("idle")
         self.move_to_corner()
+
+        self.tap_count = 0      # 누른 횟수 (메모리에만, 파일 저장 없음)
+        self.next_frame = "type_a"
+        # 키를 멈추면 REST_MS 뒤에 평소 모습으로 돌아가는 타이머
+        self.rest_timer = QTimer(self, singleShot=True, interval=REST_MS)
+        self.rest_timer.timeout.connect(lambda: self.show_frame("idle"))
+
+    def on_tap(self):
+        self.tap_count += 1
+        # ② 와 ③ 을 번갈아 보여 줘서 두드리는 것처럼 보이게
+        self.show_frame(self.next_frame)
+        self.next_frame = "type_b" if self.next_frame == "type_a" else "type_a"
+        self.rest_timer.start()  # 누를 때마다 다시 0.5초 세기
 
     def show_frame(self, name):
         pixmap = self.frames[name]
@@ -74,6 +108,13 @@ def main():
     app = QApplication(sys.argv)
     pet = Pet()
     pet.show()
+
+    keys = KeyTap()
+    # 키 듣기는 다른 스레드에서 돌아가므로, 시그널로 화면 쪽에 전달한다
+    keys.tapped.connect(pet.on_tap)
+    keys.start()
+    app.aboutToQuit.connect(keys.stop)
+
     sys.exit(app.exec())
 
 
