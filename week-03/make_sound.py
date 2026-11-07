@@ -11,17 +11,19 @@ from pathlib import Path
 
 OUT = Path(__file__).parent / "art" / "tak.wav"
 RATE = 44100      # 1초에 소리 조각 44100개
-LENGTH = 0.06     # 소리 길이 0.06초
-VOLUME = 0.35     # 0~1, 너무 크지 않게
+LENGTH = 0.09     # 소리 길이 0.09초
+VOLUME = 0.9      # 0~1 (0.35 는 노트북 스피커에서 안 들렸음)
 
 random.seed(7)  # 매번 똑같은 소리가 나오게
 
 
 def sample(t):
-    fade = math.exp(-t * 90)                       # 빨리 사라지는 소리
-    thump = math.sin(2 * math.pi * 180 * t)        # 낮은 "툭"
-    click = random.uniform(-1, 1) * math.exp(-t * 400)  # 처음 아주 짧은 "탁"
-    return VOLUME * fade * (0.6 * thump + 0.4 * click)
+    # 노트북 스피커는 낮은 소리(180Hz)를 거의 못 내서, 나무 두드리는 높이로 올림
+    fade = math.exp(-t * 55)                             # 빨리 사라지는 소리
+    wood = (math.sin(2 * math.pi * 900 * t)              # 나무 "탁"
+            + 0.5 * math.sin(2 * math.pi * 1800 * t))
+    click = random.uniform(-1, 1) * math.exp(-t * 300)   # 처음 아주 짧은 딱
+    return VOLUME * fade * (0.55 * wood + 0.35 * click)
 
 
 def main():
