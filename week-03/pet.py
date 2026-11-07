@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication, QPixmap
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication, QLabel, QMenu
 
 FRAMES = Path(__file__).parent / "art" / "frames"
 PET_HEIGHT = 160  # 화면에 보일 펫 높이(px)
@@ -23,6 +23,7 @@ class Pet(QLabel):
         )
         # 창 배경 투명 (그림의 투명한 부분이 그대로 비쳐 보임)
         self.setAttribute(Qt.WA_TranslucentBackground)
+        self.drag_offset = None
 
         self.frames = {
             name: QPixmap(str(FRAMES / f"{name}.png")).scaledToHeight(
@@ -46,9 +47,27 @@ class Pet(QLabel):
             area.bottom() - self.height() - MARGIN,
         )
 
-    def mouseDoubleClickEvent(self, event):
-        # 임시: 단계 3 에서 오른쪽 클릭 "끄기" 메뉴가 생기면 없앤다
-        QApplication.quit()
+    # --- 끌어서 옮기기 (왼쪽 버튼) ---
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            # 펫 왼쪽 위 모서리에서 마우스까지의 거리를 기억해 둔다
+            self.drag_offset = (
+                event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            )
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() & Qt.LeftButton and self.drag_offset is not None:
+            self.move(event.globalPosition().toPoint() - self.drag_offset)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.drag_offset = None
+
+    # --- 오른쪽 클릭 메뉴 ---
+    def contextMenuEvent(self, event):
+        menu = QMenu(self)
+        menu.addAction("끄기", QApplication.quit)
+        menu.exec(event.globalPos())
 
 
 def main():
