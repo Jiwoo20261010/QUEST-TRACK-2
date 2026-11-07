@@ -14,6 +14,7 @@ FRAMES = Path(__file__).parent / "art" / "frames"
 PET_HEIGHT = 160  # 화면에 보일 펫 높이(px)
 MARGIN = 12       # 화면 구석에서 띄울 거리(px)
 REST_MS = 500     # 키를 멈추고 이만큼 지나면 평소 모습으로 (밀리초)
+SLEEP_MS = 10_000 # 이만큼 안 치면 졸기 (밀리초)
 
 
 class KeyTap(QObject):
@@ -60,6 +61,10 @@ class Pet(QLabel):
         # 키를 멈추면 REST_MS 뒤에 평소 모습으로 돌아가는 타이머
         self.rest_timer = QTimer(self, singleShot=True, interval=REST_MS)
         self.rest_timer.timeout.connect(lambda: self.show_frame("idle"))
+        # 마지막으로 친 뒤 SLEEP_MS 가 지나면 조는 타이머
+        self.sleep_timer = QTimer(self, singleShot=True, interval=SLEEP_MS)
+        self.sleep_timer.timeout.connect(lambda: self.show_frame("sleep"))
+        self.sleep_timer.start()
 
     def on_tap(self):
         self.tap_count += 1
@@ -67,6 +72,7 @@ class Pet(QLabel):
         self.show_frame(self.next_frame)
         self.next_frame = "type_b" if self.next_frame == "type_a" else "type_a"
         self.rest_timer.start()  # 누를 때마다 다시 0.5초 세기
+        self.sleep_timer.start()  # 누를 때마다 졸기까지 다시 10초 세기 (졸고 있었으면 깨어남)
 
     def show_frame(self, name):
         pixmap = self.frames[name]
